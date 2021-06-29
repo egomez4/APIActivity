@@ -12,4 +12,3 @@ auth_response = requests.post(auth_url, {
 })
 
 print(auth_response.json())
-
