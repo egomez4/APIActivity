@@ -1,14 +1,54 @@
 import requests
-import spotipy
+import numpy as np
+import pandas as pd
+import json
+import sqlalchemy
+from sqlalchemy import create_engine
+from datetime import date
+from datetime import timedelta
 
-client_id = 'b6b670e62e0e484ab33099b1737325b8'
-client_secret = '5217bbe8294f40a0aab688d00b74977b'
-auth_url = 'https://accounts.spotify.com/api/token'
+# token
+token = "SJRNtbHkWTiiNIkoVWBmPtHqWxYIjZJj"
+header = {"token": token}
 
-auth_response = requests.post(auth_url, {
-  'grant_type': 'client_credentials',
-  'client_id': client_id,
-  'client_secret': client_secret
-})
+# station id for charlotte douglas international airport station
+station_id = "GHCND:USW00013881"
 
-print(auth_response.json())
+# which data set to get data from
+datasetid = "GHCND"
+
+# what kind of data to get, TAVG = temperature avg
+datatypeid = "TMAX"
+
+# limit of how much data to recieve
+limit = "7"
+
+date_range = f'startdate={date.today() - timedelta(days=14)}&enddate={date.today() - timedelta(days=7)}'
+
+# base url
+base_url = 'https://www.ncdc.noaa.gov/cdo-web/api/v2/data'
+url = f"{base_url}?stationid={station_id}&datasetid={datasetid}&locationid=FIPS:37&datatypeid={datatypeid}&limit={limit}&{date_range}"
+
+# Test url is not empty
+# Test response code is 200 (connected)
+# Test data is retrieved (returned list not empty)
+def get_weather(url):
+  # url endpoint
+  url = url
+
+  # make request
+  r = requests.get(url, headers=header)
+  
+  # load response as jason
+  d = r.json()
+
+  # take results and put into df
+  max_temps = d['results']
+  
+  return max_temps
+
+df = pd.DataFrame(get_weather(url))
+
+# create engine object
+engine = create_engine('mysql://root:codio@localhost/weather')
+df.to_sql('max_temps', con=engine, if_exists='replace', index=False)
