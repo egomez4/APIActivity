@@ -1,5 +1,5 @@
 import unittest
-from TestingActivity import get_weather
+from APIActivity import get_weather
 from datetime import date
 from datetime import timedelta
 from json import JSONDecodeError
