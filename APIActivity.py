@@ -41,9 +41,6 @@ def city_lookup_table():
     return cities
 
 
-cities = city_lookup_table()
-
-
 def weather_stations(cities, city_input):
     stations = []
     # look for city, get station then get temperature
@@ -82,7 +79,9 @@ def city_weather():
     # prompt user to enter city
     print('Enter a city: (ex. Charlotte, NC)')
     city_input = input()
+    cities = city_lookup_table()
     stations = weather_stations(cities, city_input)
+
     # make request for temperature
     datatype = 'TMAX'
     startdate = date.today() - timedelta(days=14)
@@ -102,7 +101,7 @@ def city_weather():
             temps = []
             index = 0
             for item in data["results"]:
-                temps.append({'date': item['date']})
+                temps.append({'date': datetime.strptime(item['date'].replace('T00:00:00', ''), '%Y-%m-%d').date()})
                 temps[index].update({'value': item['value']})
                 index += 1
             return temps
