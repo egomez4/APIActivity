@@ -60,7 +60,7 @@ def weather_stations(cities, city_input):
             for i in data['results']:
                 d1 = date.today()
                 d2 = date(1970, 1, 1)
-                print(i['maxdate'], i['mindate'])
+
                 maxdate_obj = datetime.strptime(i['maxdate'], '%Y-%m-%d')
                 mindate_obj = datetime.strptime(i['mindate'], '%Y-%m-%d')
                 maxdate_obj = maxdate_obj.date()
