@@ -7,7 +7,6 @@ from sqlalchemy import create_engine
 from datetime import date
 from datetime import timedelta
 from datetime import datetime
-import os
 
 # token
 token = "SJRNtbHkWTiiNIkoVWBmPtHqWxYIjZJj"
@@ -76,46 +75,109 @@ def weather_stations(cities, city_input):
     return stations
 
 
-def city_weather():
-    # prompt user to enter city
-    print('Enter a city: (ex. Charlotte, NC)')
-    city_input = input()
+def city_weather(datatype, city, startdate, enddate):
     cities = city_lookup_table()
-    stations = weather_stations(cities, city_input)
+    stations = weather_stations(cities, city)
 
     # make request for temperature
-    datatype = 'TMAX'
-    startdate = date.today() - timedelta(days=14)
-    enddate = date.today() - timedelta(days=7)
+    #startdate = date.today() - timedelta(days=7)
+    #enddate = date.today()
 
     # iterate through each station, see if it has requested data
     # if it does then make request, if not proceed to check next station
     for station in stations:
+
+        # station from which to query data
         station_id = station['id']
+
+        # endpoint & url for max temperature
         endpoint = f'data?datasetid=GHCND&datatypeid={datatype}&stationid={station_id}&startdate={startdate}&enddate={enddate}'
-        url = base_url + endpoint + '&limit=7&units=standard'
+        url = base_url + endpoint + '&limit=1000&units=standard'
+
+        # make request for max temperature and min temperature
         response = requests.get(url, headers=header)
+
+        # parse data as JSON
         data = response.json()
 
         if data:
             # parse temp data (values and dates)
-            temps = []
-            index = 0
+            values = []
+            dates = []
+            d_and_t = []
+
             for item in data["results"]:
-                temps.append({'date': datetime.strptime(item['date'].replace('T00:00:00', ''), '%Y-%m-%d').date()})
-                temps[index].update({'value': item['value']})
-                index += 1
-            return temps
+                values.append(item['value'])
+                dates.append(datetime.strptime(item['date'].replace('T00:00:00', ''), '%Y-%m-%d').date())
+            d_and_t.append(values)
+            d_and_t.append(dates)
+            return d_and_t
         else:
             continue
 
 
-city_temps = city_weather()
-df = pd.DataFrame(city_temps)
+def temperature_dataframe():
+    # Get Temperature Data
+    print('Enter a city: ex. Charlotte, NC')
+    user_input = input()
+    print('Enter a start date: (use YYYY-MM-DD format)')
+    startdate = input()
+    print('Enter an end date: (use YYYY-MM-DD format)')
+    enddate = input()
+    max_temps = city_weather('TMAX', user_input, startdate, enddate)
+    max_temps = max_temps[0]
+    min_temps = city_weather('TMIN', user_input, startdate, enddate)
+    dates = min_temps[1]
+    min_temps = min_temps[0]
 
-# create engine object
-engine = create_engine('mysql://root:codio@localhost/weather')
-df.to_sql('max_temps', con=engine, if_exists='replace', index=False)
+    # data to be returned to user
+    data = []
 
-# save database
-os.system('mysqldump -u root -pcodio weather > weatherapi.sql')
+    for d in dates:
+        data.append({'date': d})
+
+    index = 0
+    for i in data:
+        i.update({'max_temp': max_temps[index]})
+        i.update({'min_temp': min_temps[index]})
+        index += 1
+
+    # make dataframe
+    df = pd.DataFrame(data)
+
+    print(f'Weather in {user_input} from {startdate} to {enddate}:')
+    print(df)
+
+    return df
+
+
+def main():
+    is_using_system = True
+    while is_using_system:
+        # generate UI
+        print('---------------')
+        print('    WELCOME ')
+        print('---------------')
+
+        # menu options
+        print('Please select an option')
+        print('1. Get Temperature Data')
+        print('2. Quit')
+        user_input = int(input())
+
+        if user_input == 1:
+            temp_df = temperature_dataframe()
+            print('Would you like to save your data into the database? (1 = YES, 2 = NO)')
+            user_input = int(input())
+            if user_input == 1:
+                # save to database and file
+                engine = create_engine('mysql://root:codio@localhost/weather')
+                temp_df.to_sql('temps', con=engine, if_exists='replace', index=False)
+                print('Database saved. Goodbye.')
+                is_using_system = False
+        if user_input == 2:
+            is_using_system = False
+
+
+if __name__ == "__main__":
+    main()
