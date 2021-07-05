@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from datetime import date
 from datetime import timedelta
 from datetime import datetime
+import os
 
 # token
 token = "SJRNtbHkWTiiNIkoVWBmPtHqWxYIjZJj"
@@ -115,3 +116,6 @@ df = pd.DataFrame(city_temps)
 # create engine object
 engine = create_engine('mysql://root:codio@localhost/weather')
 df.to_sql('max_temps', con=engine, if_exists='replace', index=False)
+
+# save database
+os.system('mysqldump -u root -pcodio weather > weatherapi.sql')
